@@ -1,122 +1,103 @@
+// swea 2477 차량정비소
 #include <iostream>
+#include <vector>
 #include <algorithm>
 
 using namespace std;
 
-int N, M, K, A, B, ans;
-int receive[10];
-int repair[10];
-int mintime;
+int n, m, k, a, b;
+int receive[9], repair[9], arrival[1000], cusr[1000], cusrep[1000], whoina[9], aend[9], bend[9];
 
-typedef struct {
-	int come = -1;
-	int end = -1;
-	int a = -1;
-	int b = -1;
-	int idx = -1;
-}usrtime;
+class waiting {
+public:
+	int time, idx, cust;
+	waiting(int t, int i, int c) {
+		this->time = t;
+		this->idx = i;
+		this->cust = c;
+	}
+};
 
-usrtime arrive[1001];
-
-bool cmp(const usrtime& p1, const usrtime& p2) {
-	if (p1.come < p2.come) {
-		return true;
+bool comp(waiting a, waiting b) {
+	if (a.time == b.time) {
+		return a.idx > b.idx;
 	}
-	else if (p1.come == p2.come) {
-		return p1.a < p2.a;
-	}
-	else {
-		return false;
-	}
+	return a.time > b.time;
 }
 
-void _receive() {
-	int time = 0;
-	int idx = 1;
-	int arr[10] = { 0 };
-	int maxend = 0;
-	int flag = 0;
-
-	while (1) {
-		for (int i = 1; i <= N; i++) {
-			if (arr[i] != 0 && arrive[arr[i]].end == time) {
-				if (mintime > time) mintime = time;
-				arrive[arr[i]].come = time;
-				arrive[arr[i]].end = -1;
-				arr[i] = 0;
-			}
-		}
-		if (flag == 1 && time > maxend) return;
-		for (int i = 1; i <= N && K + 1 > idx; i++) {
-			if (arr[i] == 0 && arrive[idx].come <= time) {
-				arr[i] = idx;
-				arrive[idx].a = i;
-				arrive[idx].end = time + receive[i];
-				if (arrive[idx].end > maxend) maxend = arrive[idx].end;
-				idx++;
-				if (idx == K + 1) flag = 1;
-			}
-		}
-		time++;
-	}
-}
-void _repair() {
-	int time = mintime;
-	int idx = 1;
-	int arr[10] = { 0 };
-
-	while (1) {
-		for (int i = 1; i <= M; i++) {
-			if (arr[i] != 0 && arrive[arr[i]].end == time) {
-				arrive[arr[i]].end = -1;
-				arr[i] = 0;
-			}
-		}
-		if (idx == K + 1) return;
-
-		for (int i = 1; i <= M && idx < K + 1; i++) {
-			if (arr[i] == 0 && arrive[idx].come <= time) {
-				arr[i] = idx;
-				arrive[idx].b = i;
-				arrive[idx].end = time + repair[i];
-				idx++;
-			}
-		}
-		time++;
-	}
-}
-
+vector<waiting> Bwaiting;
 
 int main(void) {
-	ios_base::sync_with_stdio(false);
-	cin.tie(NULL);
-	cout.tie(NULL);
-	int T;
-	cin >> T;
-
-	for (int tc = 1; tc <= T; tc++) {
-		cin >> N >> M >> K >> A >> B;
-		ans = -1;
-		mintime = 987654321;
-		for (int i = 1; i <= N; i++)
+	int t;
+	cin >> t;
+	for (int tc = 1; tc <= t; ++tc) {
+		int ans = 0;
+		cin >> n >> m >> k >> a >> b;
+		fill_n(whoina, n, -1);
+		fill_n(aend, n, 0);
+		fill_n(bend, m, 0);
+		Bwaiting.clear();
+		for (int i = 0; i < n; ++i)
 			cin >> receive[i];
-		for (int i = 1; i <= M; i++)
+		for (int i = 0; i < m; ++i)
 			cin >> repair[i];
-		for (int i = 1; i <= K; i++) {
-			cin >> arrive[i].come;
-			arrive[i].end = -1;
-			arrive[i].idx = i;
+
+		for (int i = 0; i < k; ++i) {
+			cin >> arrival[i];
+			int minend = 1e9, index = 0, flag = 0;
+			for (int idx = 0; idx < n; ++idx) {
+				if (aend[idx] <= arrival[i]) {
+					if (whoina[idx] == -1) whoina[idx] = i;
+					else {
+						Bwaiting.push_back(waiting(aend[idx], idx, whoina[idx]));
+						whoina[idx] = i;
+					}
+					aend[idx] = arrival[i] + receive[idx];
+					cusr[i] = idx;
+					flag = 1;
+					break;
+				}
+				if (aend[idx] < minend) { minend = aend[idx]; index = idx; }
+			}
+			if (!flag) {
+				Bwaiting.push_back(waiting(aend[index], index, whoina[index]));
+				whoina[index] = i;
+				aend[index] = aend[index] + receive[index];
+				cusr[i] = index;
+			}
+		}
+		for (int i = 0; i < n; ++i) {
+			if (whoina[i] > 0) {
+				Bwaiting.push_back(waiting(aend[i], i, whoina[i]));
+				whoina[i] = -1;
+			}
+		}
+		sort(Bwaiting.begin(), Bwaiting.end(), comp);
+
+		for (int i = 0; i < k; ++i) {
+			waiting tmp = Bwaiting.back();
+			Bwaiting.pop_back();
+			int minend = 1e9, index = 0, flag = 0;
+			for (int idx = 0; idx < m; ++idx) {
+				if (bend[idx] <= tmp.time) {
+					bend[idx] = tmp.time + repair[idx];
+					cusrep[tmp.cust] = idx;
+					flag = 1;
+					break;
+				}
+				if (bend[idx] < minend) { minend = bend[idx]; index = idx; }
+			}
+			if (!flag) {
+				bend[index] = bend[index] + repair[index];
+				cusrep[tmp.cust] = index;
+			}
 		}
 
-		_receive();
-		sort(arrive + 1, arrive + K + 1, cmp);
-		_repair();
-
- 		for (int i = 1; i <= K; i++) {
-			if (arrive[i].a == A && arrive[i].b == B) ans += arrive[i].idx;
+		for (int i = 0; i < k; ++i) {
+			if (cusr[i] + 1 == a && cusrep[i] + 1 == b) ans += (i + 1);
 		}
+		if (!ans) ans = -1;
 
-		if (ans == -1) cout << "#" << tc << " " << ans << '\n';
-		else cout << "#" << tc << " " << ans + 1 << '\n';
+		cout << '#' << tc << " " << ans << '\n';
 	}
 }

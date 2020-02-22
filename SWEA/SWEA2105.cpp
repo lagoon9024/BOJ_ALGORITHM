@@ -1,71 +1,60 @@
+// swea 2105 디저트카페
 #include <iostream>
 
 using namespace std;
+int n,ans;
+int cafe[20][20];
+bool eat[101];
+class pos {
+public:
+	int r, c;
+	pos(int rr, int cc) {
+		this->r = rr;
+		this->c = cc;
+	}
+	bool bound() {
+		return r >= 0 && c >= 0 && r < n && c < n;
+	}
+};
 
-int N, ans;
-int map[20][20];
-bool visit[20][20];
-bool check[101];
-int dr[4] = { -1, 1, 1, -1 };
-int dc[4] = { -1, -1, 1, 1 };
+int dr[] = { -1,1,1,-1 };
+int dc[] = { 1,1,-1,-1 };
 
-void dfs(int r, int c, int cnt, int sr, int sc, int dir) {
-	int nr = r + dr[dir];
-	int nc = c + dc[dir];
-	if (nr == sr && nc == sc && dir == 3) {
-		if (cnt + 1 > ans) ans = cnt + 1;
-		return;
-	}
-	if (nr >= 0 && nc >= 0 && nr < N && nc < N && !visit[nr][nc] && !check[map[nr][nc]]) {
-		check[map[nr][nc]] = true;
-		visit[nr][nc] = true;
-		dfs(nr, nc, cnt + 1, sr, sc, dir);
-		check[map[nr][nc]] = false;
-		visit[nr][nc] = false;
-	}
-	if (cnt != 0 && dir != 3) {
-		nr = r + dr[++dir];
-		nc = c + dc[dir];
-		if (nr == sr && nc == sc && dir == 3) {
-			if (cnt + 1 > ans) ans = cnt + 1;
-			return;
+void go(pos start, pos cur, int dir, int depth) {
+	for (int i = 0; i < 2; ++i) {
+		pos next(cur.r + dr[dir+i], cur.c + dc[dir+i]);
+		if (next.r == start.r && next.c == start.c) {
+			if (ans < depth) ans = depth;
+			continue;
 		}
-		if (nr >= 0 && nc >= 0 && nr < N && nc < N && !visit[nr][nc] && !check[map[nr][nc]]) {
-			check[map[nr][nc]] = true;
-			visit[nr][nc] = true;
-			dfs(nr, nc, cnt + 1, sr, sc, dir);
-			check[map[nr][nc]] = false;
-			visit[nr][nc] = false;
-		}
+		if (!next.bound() || eat[cafe[next.r][next.c]]) continue;
+		eat[cafe[next.r][next.c]] = true;
+		go(start, next, dir + i, depth + 1);
+		eat[cafe[next.r][next.c]] = false;
 	}
-	return;
 }
 
 int main(void) {
-	int T;
-	cin >> T;
-
-	for (int tc = 1; tc <= T; tc++) {
-		cin >> N;
+	int t;
+	cin >> t;
+	for (int tc = 1; tc <= t; ++tc) {
 		ans = -1;
-		for (int i = 0; i < N; i++)
-			fill_n(visit[i], N, false);
-		fill_n(check, 101, false);
-		for (int i = 0; i < N; i++) {
-			for (int j = 0; j < N; j++) {
-				cin >> map[i][j];
+		cin >> n;
+		for (int i = 0; i < n; ++i) {
+			for (int j = 0; j < n; ++j) {
+				cin >> cafe[i][j];
 			}
 		}
 
-		for (int i = 0; i < N; i++) {
-			for (int j = 0; j < N; j++) {
-				check[map[i][j]] = true;
-				visit[i][j] = true;
-				dfs(i, j, 0, i, j, 0);
-				check[map[i][j]] = false;
-				visit[i][j] = false;
+		for (int i = 1; i < n - 1; ++i) {
+			for (int j = 0; j < n - 1; ++j) {
+				eat[cafe[i][j]] = true;
+				go(pos(i, j), pos(i, j), 0, 1);
+				eat[cafe[i][j]] = false;
 			}
 		}
-		cout << "#" << tc << " " << ans << '\n';
+
+
+		cout << '#' << tc << " " << ans<<'\n';
 	}
 }
